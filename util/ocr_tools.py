@@ -1,4 +1,3 @@
-
 def img_to_str(image_path):
     import pytesseract
     from PIL import Image

@@ -1,5 +1,5 @@
 <template>
-  <div :class="contentClass">
+  <div :class="contentClass" :style="style">
     <svg class="icon" aria-hidden="true">
       <use :xlink:href="iconfontName"></use>
     </svg>
@@ -30,6 +30,10 @@ export default {
       type: String,
       required: false,
       default: 'bottom'
+    },
+    style: {
+      type: Object,
+      required: false
     }
   },
   computed: {
@@ -40,6 +44,8 @@ export default {
       switch (this.position) {
         case 'bottom':
           return 'icon-content content-bottom'
+        case 'right':
+          return 'icon-content content-right'
       }
     }
   }

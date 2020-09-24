@@ -1,10 +1,11 @@
+import config
 from util.sqlite_tool import SqliteTemplate
 
 # 建表语句
 table_sql = "create table if not exists history(" \
             "id integer primary key autoincrement," \
             "maincontent text not null," \
-            "createtime datetime not null" \
+            "createtime text not null" \
             ");"
 # 插入语句
 insert_sql = "insert into history values(NULL, ?, ?);"
@@ -55,3 +56,13 @@ class HistoryTemplate(SqliteTemplate):
     # 删除全部表中数据
     def Delete_All_History(self):
         super(HistoryTemplate, self).delete(delete_id_sql)
+
+
+def init():
+    pdbc = get_instance()
+    pdbc.create_table(table_sql, [])
+    pdbc.close()
+
+
+def get_instance():
+    return HistoryTemplate(config.database)

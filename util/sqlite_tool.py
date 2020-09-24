@@ -1,5 +1,5 @@
 import sqlite3
-from functools import wraps
+
 
 class SqliteTemplate:
     def __init__(self, db_name):

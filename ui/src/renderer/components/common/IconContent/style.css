@@ -1,13 +1,10 @@
 @import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro");
 
-#icon-content {
+.icon-content {
   width: 30px;
   height: 40px;
 }
-#icon-content:hover {
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.36), 0 0 8px rgba(0, 0, 0, 0.36),
-    0 0 16px rgba(0, 0, 0, 0.36);
-}
+
 .content {
   font-family: "Microsoft YaHei", 微软雅黑, "Microsoft JhengHei", 华文细黑,
     STHeiti, MingLiu, sans-serif;
@@ -20,4 +17,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+.content-right {
+  line-height: 10px;
+  width: 40px;
 }

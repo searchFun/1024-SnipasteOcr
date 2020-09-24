@@ -22,8 +22,9 @@ export default {
 }
 html,
 body {
-  width: 100%;
-  height: 100%;
+  width: 680px;
+  height: 700px;
+  border-radius: 5px;
 }
 
 #app {

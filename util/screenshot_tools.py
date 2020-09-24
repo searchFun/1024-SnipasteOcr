@@ -2,13 +2,11 @@ import numpy as np
 import screeninfo
 import pyautogui
 import cv2
-import tesserocr
 
 
 # 创建一个透明灰度
 def create_masker(width: int, height: int):
     img = np.ones([height, width, 4], np.uint8)
-    img[:, :, 3] = 50
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGRA)
     return img
 
@@ -16,7 +14,10 @@ def create_masker(width: int, height: int):
 # 指定区域截屏
 def screen_shot(width: int, height: int, x=0, y=0):
     img = pyautogui.screenshot(region=[x, y, width, height])  # x,y,w,h
-    img = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGBA2BGRA)
+    print(img)
+    img = np.asarray(img)
+    img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGRA)
+    img[:, :, 3] = 255
     return img
 
 

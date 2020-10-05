@@ -1,0 +1,24 @@
+{
+  "devDependencies": {
+    "css-loader": "^4.2.2",
+    "file-loader": "^6.0.0",
+    "style-loader": "^1.2.1",
+    "url-loader": "^4.1.0",
+    "vue-compiler": "^4.2.1",
+    "vue-loader": "^15.9.3",
+    "vue-template-compiler": "^2.6.12",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "dependencies": {
+    "axios": "^0.20.0",
+    "vue": "^2.6.12",
+    "vue-axios": "^2.1.5",
+    "vue-router": "^3.4.3"
+  },
+  "scripts": {
+    "dev": "webpack-dev-server --env development",
+    "build": "webpack-cli"
+  }
+}

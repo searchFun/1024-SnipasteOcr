@@ -1,6 +1,5 @@
 import json
 import multiprocessing
-import time
 
 from PySide2.QtWidgets import QApplication
 
@@ -19,7 +18,7 @@ def shot():
     application = QApplication()
     wd = ScreenShot()
     wd.start()
-    application.exec()
+    application.exec_()
 
 
 @app.route('/')
@@ -29,11 +28,10 @@ def hello_world():
 
 @app.route('/screenshot')
 def screenshot():
-    # pool = multiprocessing.Pool(processes=8)
-    # pool.apply(shot)
-    # pool.close()
-    # pool.join()
-    # print("ffff")
+    pool = multiprocessing.Pool(processes=8)
+    pool.apply(shot)
+    pool.close()
+    pool.join()
     return json.dumps(get_instance().select("select * from history", [])).encode('utf-8').decode('unicode_escape')
 
 

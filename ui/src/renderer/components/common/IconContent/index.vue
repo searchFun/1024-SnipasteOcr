@@ -3,15 +3,15 @@
     <svg class="icon" aria-hidden="true">
       <use :xlink:href="iconfontName"></use>
     </svg>
-    <span class="content">{{content}}</span>
+    <span class="content">{{ content }}</span>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'IconContent',
+  name: "IconContent",
   data() {
-    return {}
+    return {};
   },
   props: {
     iconClass: {
@@ -29,7 +29,7 @@ export default {
     position: {
       type: String,
       required: false,
-      default: 'bottom'
+      default: "bottom"
     },
     style: {
       type: Object,
@@ -38,19 +38,19 @@ export default {
   },
   computed: {
     iconfontName() {
-      return '#icon-' + this.iconName
+      return "#icon-" + this.iconName;
     },
     contentClass() {
       switch (this.position) {
-        case 'bottom':
-          return 'icon-content content-bottom'
-        case 'right':
-          return 'icon-content content-right'
+        case "bottom":
+          return "icon-content content-bottom";
+        case "right":
+          return "icon-content content-right";
       }
     }
   }
-}
+};
 </script>
 <style scoped>
-@import './style.css';
+@import "./style.css";
 </style>

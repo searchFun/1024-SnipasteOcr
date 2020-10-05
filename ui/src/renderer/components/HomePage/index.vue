@@ -46,18 +46,18 @@
   </div>
 </template>
 <script>
-import IconContent from '@/components/common/IconContent/index'
-import request from '@/util/request.js'
-const {ipcRenderer: ipc} = require('electron')
+import IconContent from "@/components/common/IconContent/index";
+import request from "@/util/request.js";
+const {ipcRenderer: ipc} = require("electron");
 export default {
-  name: 'HomePage',
+  name: "HomePage",
   components: {IconContent},
   data() {
     return {
       histories: [
         {
-          date: '2020-08-25',
-          time: '12:05:06',
+          date: "2020-08-25",
+          time: "12:05:06",
           ocrResult: `一、引言*
 
 1.1 从体验经济到体验设计。
@@ -79,62 +79,62 @@ export default {
 这个体验的后期，让人产生反思，通过反思得以认识自己发展自己。我想这
 点是设计成为一种优势文化，而所要肩负的必要责任。"`,
           ocrImgUrl:
-            'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=2230509926,2741806962&fm=26&gp=0.jpg'
+            "https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=2230509926,2741806962&fm=26&gp=0.jpg"
         },
         {
-          date: '2020-08-25',
-          time: '12:05:06',
+          date: "2020-08-25",
+          time: "12:05:06",
           ocrResult:
-            'hadfadfasdfahhfkdhjkfahdsjkafhjksdhfjkhasdfjhdsjkfhjksdahfjkhsdfjkhdjfhkjashfjkdshfjkhsdajfhsdjkfhjkhfkasdfhkjasdfkhajfkad',
-          ocrImgUrl: 'file:///D:/Documents/OneDrive/图片/壁纸/星树.jpg'
+            "hadfadfasdfahhfkdhjkfahdsjkafhjksdhfjkhasdfjhdsjkfhjksdahfjkhsdfjkhdjfhkjashfjkdshfjkhsdajfhsdjkfhjkhfkasdfhkjasdfkhajfkad",
+          ocrImgUrl: "file:///D:/Documents/OneDrive/图片/壁纸/星树.jpg"
         }
       ],
       selectIndex: 0
-    }
+    };
   },
   computed: {
     datetime(date, time) {
       return (date, time) => {
-        return date + '\t' + time
-      }
+        return date + "\t" + time;
+      };
     },
     simpleWord(word) {
       return (word) => {
-        return word.slice(0, 10) + '...'
-      }
+        return word.slice(0, 10) + "...";
+      };
     }
   },
   methods: {
     setting() {
-      console.log('设置')
+      console.log("设置");
     },
     minimize() {
-      ipc.send('min')
+      ipc.send("min");
     },
     quit() {
-      ipc.send('quit')
+      ipc.send("quit");
     },
     selectHistory(index) {
-      this.selectIndex = index
+      this.selectIndex = index;
     },
     ocr() {
-      this.minimize()
-      request.get('/screenshot').then((rsp) => {
-        alert(rsp)
-      })
+      this.minimize();
+      request.get("/screenshot").then((rsp) => {
+        alert(rsp);
+      });
     },
     historyItem(index) {
       if (this.selectIndex === index) {
-        return 'history-item selected'
+        return "history-item selected";
       } else {
-        return 'history-item'
+        return "history-item";
       }
     }
   },
   created() {
-    console.log(this)
+    console.log(this);
   }
-}
+};
 </script>
 <style scoped>
 @import './style';

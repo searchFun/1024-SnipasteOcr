@@ -10,8 +10,8 @@
 
 <script>
 export default {
-  name: 'electron-vue'
-}
+  name: "electron-vue"
+};
 </script>
 
 <style>
@@ -33,8 +33,8 @@ body {
   position: relative;
   overflow: hidden;
 }
-#app .app-border{
-    opacity: 0;
+#app .app-border {
+  opacity: 0;
 }
 #app .app-border:nth-child(1) {
   position: absolute;

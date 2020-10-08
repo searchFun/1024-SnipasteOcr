@@ -50,13 +50,3 @@ class SqliteTemplate:
     def delete(self, sql_statement, parameters=[]):
         self._cursor.execute(sql_statement, parameters)
         self._conn.commit()
-
-# jdbc = SqliteTemplate("test.db")
-# jdbc.create_table("create table test2(id integer primary key autoincrement,main_content varchar(10) null,age integer null);")
-# jdbc.insert("insert into test values(NULL,?,?)", ['hjc', '12'])
-# jdbc.insert_many("insert into test values(NULL,?,?)", [['hjc', '12'], ['lcm', '18'], ['lsz', '13']])
-# result = jdbc.select("select * from test")
-# for item in result:
-#     print(item)
-#
-# jdbc.close()

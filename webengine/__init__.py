@@ -1,57 +1,75 @@
+import json
+import os
+import threading
+from pathlib import Path
+
 from PySide2.QtWidgets import QApplication
-from PySide2.QtCore import QObject, QUrl, Slot, Qt
-from PySide2.QtWebChannel import QWebChannel
-from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+from PySide2.QtCore import QObject, Slot
 import sys
+
+from dao.history_dao import select_all, remove_history
+from webengine.view import WebView, OcrWidget
+
+data_dir = Path(os.path.dirname(os.path.dirname(__file__)))
+
+app = None
+webview = None
+ocrView = None
+
+ocr_result = False
+
+
+def ocr_over(result):
+    print("ocr result:%s" % result)
+    ocr_result = True
+    # print(threading.current_thread().getName())
 
 
 class Handler(QObject):
-    # Slot，中文网络上大多称其为槽。作用是接收网页发起的信号
+
     @Slot(str, result=str)
-    def print(self, content):
-        print('输出文本：', content)  # 对接收到的内容进行处理，比如调用打印机进行打印等等。此处略去，只在bash中显示接收到的消息
+    def demo(self, content):
         return content
 
     @Slot()
-    def exit(self):
+    def mini(self):
+        webview.showMinimized()
+
+    @Slot()
+    def quit(self):
         sys.exit()
 
     @Slot()
-    def min(self):
-        
+    def ocr(self):
+        webview.hide()
+        ocrView.start()
+        webview.show()
+        print("fff")
+        return json.dumps({
+            "code": 200
+        }, ensure_ascii=False)
 
-class WebEnginePage(QWebEnginePage):
-    def __init__(self, *args, **kwargs):
-        super(WebEnginePage, self).__init__(*args, **kwargs)
+    @Slot(str, result=str)
+    def get_all_history(self, request):
+        result = select_all()
+        return json.dumps(result, ensure_ascii=False)
 
-    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
-        print("WebEnginePage Console: ", level, message, lineNumber, sourceId)
+    @Slot(int, result=str)
+    def removeOne(self, id):
+        remove_history(id)
+        print("remove:%d" % id)
+        return json.dumps({
+            "code": 200
+        }, ensure_ascii=False)
 
 
 if __name__ == '__main__':
-    app = QApplication([])
-    app.setApplicationDisplayName("Greetings from the other side")
-
-    # Use a webengine view
-    view = QWebEngineView()
-    view.setWindowFlags(Qt.FramelessWindowHint)
-    view.resize(700, 800)
-
-    # Set up backend communication via web channel
-    handler = Handler()
-    # channel是页面中可以拿到的,顾名思义,一个通道
-    channel = QWebChannel()
-    # Make the handler object available, naming it "backend"
-    channel.registerObject("backend", handler)
-
-    # Use a custom page that prints console messages to make debugging easier
-    page = WebEnginePage()
-    page.setWebChannel(channel)
-    view.setPage(page)
-
-    # Finally, load our file in the view
-    url = QUrl.fromLocalFile("C:/Users/hjc/Desktop/screenShotUI/index.html")
-    view.load(url)
-    view.show()
-
+    if app is None:
+        app = QApplication([])
+    if webview is None:
+        handler = Handler()
+        webview = WebView(handler=handler, pageUrl=f"{data_dir}/screenshotUi/index.html")
+        webview.show()
+    if ocrView is None:
+        ocrView = OcrWidget()
     app.exec_()

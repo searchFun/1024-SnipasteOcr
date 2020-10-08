@@ -1,20 +1,67 @@
 import os
-import sys
+import threading
 import time
 
-from PySide2.QtCore import *
-from PySide2.QtGui import *
-from PySide2.QtWidgets import *
+from PySide2.QtCore import Qt, QUrl, QFile, QIODevice
+from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QIcon
+from PySide2.QtWebChannel import QWebChannel
+from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+from PySide2.QtWidgets import QApplication, QWidget
 
-from history_dao import get_instance
+import config
+from dao.history_dao import insert_history
 from util import ocr_tools
 from util.date_tool import get_datetime
+from util.sqlite_tool import SqliteTemplate
 
 
-class ScreenShot(QWidget):
-    # 缓存图片文件名称
-    tmp_file_name = "tmp.png"
+class WebEnginePage(QWebEnginePage):
+    def __init__(self, *args, **kwargs):
+        super(WebEnginePage, self).__init__(*args, **kwargs)
 
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
+        print("WebEnginePage Console: [", message, lineNumber, sourceId, "]")
+
+
+class WebView(QWebEngineView):
+    def __init__(self, handler, pageUrl):
+        super(WebView, self).__init__()
+        # 设置为无边框窗口
+        # self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowTitle('SnipasteOcr')
+        self.setWindowFlags(Qt.WindowCloseButtonHint)
+        self.setWindowIcon(QIcon('D:\\LocalProject\\assets\\img\\icon.png'))
+        # 调整大小
+        self.resize(700, 800)
+
+        # channel是页面中可以拿到的,顾名思义,一个通道
+        self.channel = QWebChannel()
+        # Make the handler object available, naming it "backend"
+        self.channel.registerObject("backend", handler)
+
+        # Use a custom page that prints console messages to make debugging easier
+        self.page = WebEnginePage()
+        self.page.setWebChannel(self.channel)
+        self.setPage(self.page)
+
+        # Finally, load our file in the view
+        # url = QUrl.fromLocalFile(f"{data_dir}/screenshotUi/index.html")
+        url = QUrl.fromLocalFile(pageUrl)
+        self.load(url)
+
+
+class OcrThread(threading.Thread):
+    def __init__(self, file_name):
+        super(OcrThread, self).__init__()
+        self.file_name = file_name
+
+    def run(self):
+        ocr_str = ocr_tools.img_to_str(self.file_name)
+        # 插入数据库
+        insert_history(ocr_str, self.file_name)
+
+
+class OcrWidget(QWidget):
     desktop_pix = None
 
     # 鼠标点击开始点
@@ -34,14 +81,14 @@ class ScreenShot(QWidget):
     # 正在截图标识
     doingFlag = False
 
-    def __init__(self, parent=None):
-        super(ScreenShot, self).__init__(parent)
+    ocr_lock = threading.Condition()
+
+    def __init__(self, parent=None, ):
+        super(OcrWidget, self).__init__(parent)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint | Qt.WindowStaysOnTopHint)
         self.palette = QPalette()
         self.desk = QApplication.desktop()
         self.screen = self.desk.screenGeometry()
-        # 对鼠标移动事件进行监听
-        self.setMouseTracking(True)
 
     # 按键监听
     def keyPressEvent(self, evt):
@@ -49,6 +96,9 @@ class ScreenShot(QWidget):
             self.start()
 
     def start(self):
+        print("加锁")
+        # 对鼠标移动事件进行监听
+        self.setMouseTracking(True)
         # 标识开始截图
         self.startFlag = 1
         # 休眠0.3秒
@@ -102,12 +152,13 @@ class ScreenShot(QWidget):
             # 开始截图标记置否
             self.startFlag = False
             pix = self.get_current_pix()
-            result = self.ocr(pix)
-            # 插入数据库
-            get_instance().Insert_History([result, str(get_datetime())])
+            file_name = self.save_temp(pix)
+            print(file_name)
+            print("mid")
+            t1 = OcrThread(file_name)
+            t1.start()
             self.hide()
-        else:
-            print("未开始截图")
+            self.setMouseTracking(False)
 
     # 获取当前pix
     def get_current_pix(self):
@@ -118,9 +169,11 @@ class ScreenShot(QWidget):
 
     # 存一个缓存图片
     def save_temp(self, pix):
-        tmp_file = QFile(self.tmp_file_name)
+        file_name = config.tmp_image_dir + "\\" + get_datetime() + ".png"
+        tmp_file = QFile(file_name)
         tmp_file.open(QIODevice.WriteOnly)
         pix.save(tmp_file, "PNG")
+        return file_name
 
     # 删除这个缓存图片
     def delete_temp(self):
@@ -128,21 +181,9 @@ class ScreenShot(QWidget):
 
     # ocr
     def ocr(self, pix):
-        self.save_temp(pix)
-        ocr_str = ocr_tools.img_to_str(self.tmp_file_name)
-        self.delete_temp()
+        file_name = self.save_temp(pix)
+        ocr_str = ocr_tools.img_to_str(file_name)
+        # 插入数据库
+        insert_history(ocr_str, file_name)
+
         return ocr_str
-
-
-class ScreenShotService():
-    def __init__(self):
-        self.app = QApplication.instance()
-        if self.app is None:
-            self.app = QApplication(sys.argv)
-        self.wd = ScreenShot()
-
-    def start(self):
-        self.wd.start()
-
-    def end(self):
-        self.app.exec_()

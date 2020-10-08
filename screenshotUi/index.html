@@ -7,10 +7,11 @@
     <title>BeautifulVueComponent</title>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script>
-        window.getBackend = new Promise((resolve, reject) => {
+        const getBackend = new Promise((resolve, reject) => {
             new QWebChannel(qt.webChannelTransport,
                 (channel) => resolve(channel.objects.backend));
         })
+        window.getBackend = getBackend;
     </script>
 </head>
 

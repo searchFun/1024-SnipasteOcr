@@ -1,14 +1,14 @@
 import config
+from util.date_tool import get_datetime
 from util.sqlite_tool import SqliteTemplate
 
-# 建表语句
-table_sql = "create table if not exists history(" \
-            "id integer primary key autoincrement," \
-            "maincontent text not null," \
-            "createtime text not null" \
-            ");"
+
+def get_sqlite():
+    return SqliteTemplate(config.database)
+
+
 # 插入语句
-insert_sql = "insert into history values(NULL, ?, ?);"
+insert_sql = "insert into history values(NULL, ?, ?,?);"
 # 查询语句
 select_sql = "select * from history;"
 # 通过id查询
@@ -19,6 +19,50 @@ select_time_sql = "select * from history where createtime > ? and createtime < ?
 delete_all_sql = "delete * from history;"
 # 通过id删除记录
 delete_id_sql = "delete from history where id = ?;"
+
+
+def create_table():
+    # 建表语句
+    sql = "create table if not exists history(" \
+          "id integer primary key autoincrement," \
+          "content text not null," \
+          "createtime text not null," \
+          "imgurl text not null" \
+          ");"
+    sqlite = get_sqlite()
+    sqlite.create_table(sql)
+    sqlite.close()
+
+
+def select_all():
+    # 查询语句
+    sql = "select * from history;"
+    sqlite = get_sqlite()
+    result = sqlite.select(sql)
+    sqlite.close()
+    return result
+
+
+def insert_history(content: str, img_url: str):
+    # 查询语句
+    sql = "insert into history values(NULL, ?, ?,?);"
+    sqlite = get_sqlite()
+    sqlite.insert(sql, [content, str(get_datetime()), img_url])
+    sqlite.close()
+
+
+def remove_history(id):
+    sql = "delete from history where id = ?;"
+    sqlite = get_sqlite()
+    sqlite.delete(sql, [id])
+    sqlite.close()
+
+
+def remove_all():
+    sql = "delete from history;"
+    sqlite = get_sqlite()
+    sqlite.insert(sql, id)
+    sqlite.close()
 
 
 class HistoryTemplate(SqliteTemplate):
@@ -56,13 +100,3 @@ class HistoryTemplate(SqliteTemplate):
     # 删除全部表中数据
     def Delete_All_History(self):
         super(HistoryTemplate, self).delete(delete_id_sql)
-
-
-def init():
-    pdbc = get_instance()
-    pdbc.create_table(table_sql, [])
-    pdbc.close()
-
-
-def get_instance():
-    return HistoryTemplate(config.database)

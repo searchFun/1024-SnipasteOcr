@@ -3,11 +3,11 @@ import multiprocessing
 
 from PySide2.QtWidgets import QApplication
 
-from history_dao import get_instance
+from dao.history_dao import get_instance
 
 from flask import Flask
 
-from screenshot_service import ScreenShotService, ScreenShot
+from screenshot_service import ScreenShot
 
 app = Flask(__name__)
 

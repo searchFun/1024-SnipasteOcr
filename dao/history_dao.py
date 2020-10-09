@@ -64,6 +64,8 @@ def remove_all():
     sqlite.insert(sql, id)
     sqlite.close()
 
+if __name__ == '__main__':
+    create_table()
 
 class HistoryTemplate(SqliteTemplate):
     # 调用父类构造器，连接数据库

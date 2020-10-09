@@ -1,6 +1,5 @@
 import json
 import os
-import threading
 from pathlib import Path
 
 from PySide2.QtWidgets import QApplication
@@ -38,6 +37,15 @@ class Handler(QObject):
     @Slot()
     def quit(self):
         sys.exit()
+
+    @Slot(str, result=str)
+    def copyResult(self, content):
+        clipboard = QApplication.clipboard()
+        clipboard.clear()
+        clipboard.setText(content)
+        return json.dumps({
+            "code": 200
+        }, ensure_ascii=False)
 
     @Slot()
     def ocr(self):

@@ -1,6 +1,6 @@
 <template>
-    <div class="home-page">
-        <!-- <div class="header">
+  <div class="home-page">
+    <!-- <div class="header">
             <icon-content icon-name='setting1' content="设置" @click.native="setting" />
             <span>Snipaste OCR</span>
             <div>
@@ -8,132 +8,149 @@
                 <icon-content icon-name='tuichu' content="退出" @click.native="quit" />
             </div>
         </div> -->
-        <div class="body">
-            <div class="aside">
-                <div class="histories" v-if="histories.length!=0">
-                    <div :class="historyItem(index)" v-for="(history,index) in histories" :key='index' @click="selectHistory(index)">
-                        <h3>{{datetime(history.date,history.time)}}</h3>
-                        <p>{{simpleWord(history.ocrResult)}}</p>
-                        <icon-content icon-name='delete' class="history-delete" @click.native="removeOne(history.id)"></icon-content>
-                    </div>
-                </div>
-
-                <button class="ocr-btn" @click="ocr">
-                    <icon-content icon-name='jieping' class="ocr-icon"></icon-content>
-                    OCR一下
-                </button>
-            </div>
-            <div class="main" v-if="histories.length!=0">
-                <div class="resultHeader">
-                    <h2>{{ datetime(histories[selectIndex].date,histories[selectIndex].time)}}</h2>
-                    <div class="underline"></div>
-                </div>
-                <div class="resultBody">
-                    <div class="result">
-                        <h4>OCR识别结果:</h4>
-                        <icon-content icon-name='lujing182' class="copy" content="复制" position='right' @click.native="copyResult(histories[selectIndex].ocrResult)"></icon-content>
-                        <p class="ocrResult">{{ histories[selectIndex].ocrResult }}</p>
-                    </div>
-                    <div class="source">
-                        <h4>原图:</h4>
-                        <div class="img">
-                            <img :src="histories[selectIndex].ocrImgUrl" alt="">
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="body">
+      <div class="aside">
+        <div class="histories" v-if="histories.length!=0">
+          <div :class="historyItem(index)" v-for="(history,index) in histories" :key='index' @click="selectHistory(index)">
+            <h3>{{datetime(history.date,history.time)}}</h3>
+            <p>{{simpleWord(history.ocrResult)}}</p>
+            <icon-content icon-name='delete' class="history-delete" @click.native="removeOne(history.id)"></icon-content>
+          </div>
         </div>
+
+        <button class="ocr-btn" @click="ocr">
+          <icon-content icon-name='jieping' class="ocr-icon"></icon-content>
+          OCR一下
+        </button>
+      </div>
+      <div class="main" v-if="histories.length!=0">
+        <div class="resultHeader">
+          <h2>{{ datetime(histories[selectIndex].date,histories[selectIndex].time)}}</h2>
+          <div class="underline"></div>
+        </div>
+        <div class="resultBody">
+          <div class="result">
+            <h4>OCR识别结果:</h4>
+            <icon-content icon-name='lujing182' class="copy" content="复制" position='right' @click.native="copyResult(histories[selectIndex].ocrResult)"></icon-content>
+            <p class="ocrResult">{{ histories[selectIndex].ocrResult }}</p>
+          </div>
+          <div class="source">
+            <h4>原图:</h4>
+            <div class="img">
+              <img :src="histories[selectIndex].ocrImgUrl" alt="">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </template>
 <script>
-import IconContent from '@/components/common/IconContent/index';
-import { str2Date, date2Str } from '@/util/dateUtil.js';
+import IconContent from '@/components/common/IconContent/index'
+import {str2Date, date2Str} from '@/util/dateUtil.js'
 export default {
-	name: 'HomePage',
-	components: { IconContent },
-	data() {
-		return {
-			histories: [],
-			selectIndex: 0,
-		};
-	},
-	computed: {
-		datetime(date, time) {
-			return (date, time) => {
-				return date + '\t' + time;
-			};
-		},
-		simpleWord(word) {
-			return (word) => {
-				return word.slice(0, 10) + '...';
-			};
-		},
-	},
-	methods: {
-		setting() {
-			console.log('设置');
-		},
-		minimize() {
-			window.getBackend.then((backend) => {
-				backend.mini();
-			});
-		},
-		quit() {
-			window.getBackend.then((backend) => {
-				backend.quit();
-			});
-		},
-		ocr() {
-			let self = this;
-			window.getBackend.then((backend) => {
-				backend.ocr();
-			});
-		},
-		get_all() {
-			window.getBackend.then((backend) => {
-				backend.get_all_history('', (rsp) => {
-					let data = JSON.parse(rsp);
-					let result = data.map((item) => {
-						let date = str2Date(item[2], 'yyyyMMddHHmmss');
-						return {
-							id: item[0],
-							date: date2Str(date, 'yyyy-MM-dd'),
-							time: date2Str(date, 'HH:mm:ss'),
-							ocrResult: item[1],
-							ocrImgUrl: 'file:///' + item[3],
-						};
-					});
-					this.histories = result;
-				});
-			});
-		},
-		removeOne(id) {
-			let self = this;
-			window.getBackend.then((backend) => {
-				backend.removeOne(id, (rsp) => {
-					let data = JSON.parse(rsp);
-					if (data.code === 200) {
-						alert('删除成功');
-						self.get_all();
-					}
-				});
-			});
-		},
-		selectHistory(index) {
-			this.selectIndex = index;
-		},
-		historyItem(index) {
-			if (this.selectIndex === index) {
-				return 'history-item selected';
-			} else {
-				return 'history-item';
-			}
-		},
-	},
-	created() {
-		this.get_all();
-	},
-};
+  name: 'HomePage',
+  components: {IconContent},
+  data() {
+    return {
+      histories: [],
+      selectIndex: 0,
+    }
+  },
+  computed: {
+    datetime(date, time) {
+      return (date, time) => {
+        return date + '\t' + time
+      }
+    },
+    simpleWord(word) {
+      return (word) => {
+        return word.slice(0, 10) + '...'
+      }
+    },
+  },
+  methods: {
+    setting() {
+      console.log('设置')
+    },
+    minimize() {
+      window.getBackend.then((backend) => {
+        backend.mini()
+      })
+    },
+    quit() {
+      window.getBackend.then((backend) => {
+        backend.quit()
+      })
+    },
+    ocr() {
+      let self = this
+      window.getBackend.then((backend) => {
+        backend.ocr()
+      })
+    },
+    get_all() {
+      window.getBackend.then((backend) => {
+        backend.get_all_history('', (rsp) => {
+          let data = JSON.parse(rsp)
+          let result = data.map((item) => {
+            let date = str2Date(item[2], 'yyyyMMddHHmmss')
+            return {
+              id: item[0],
+              date: date2Str(date, 'yyyy-MM-dd'),
+              time: date2Str(date, 'HH:mm:ss'),
+              ocrResult: item[1],
+              ocrImgUrl: 'file:///' + item[3],
+            }
+          })
+          this.histories = result
+        })
+      })
+    },
+    removeOne(id) {
+      let self = this
+      window.getBackend.then((backend) => {
+        backend.removeOne(id, (rsp) => {
+          let data = JSON.parse(rsp)
+          if (data.code === 200) {
+            self.$message({
+              message: '删除成功',
+              type: 'success',
+            })
+            self.get_all()
+          }
+        })
+      })
+    },
+    copyResult(str) {
+      let self = this
+      window.getBackend.then((backend) => {
+        backend.copyResult(str, (rsp) => {
+          let data = JSON.parse(rsp)
+          if (data.code === 200) {
+            self.$message({
+              message: '已复制到剪切板',
+              type: 'success',
+            })
+          }
+        })
+      })
+    },
+    selectHistory(index) {
+      this.selectIndex = index
+    },
+    historyItem(index) {
+      if (this.selectIndex === index) {
+        return 'history-item selected'
+      } else {
+        return 'history-item'
+      }
+    },
+  },
+  created() {
+    this.get_all()
+  },
+}
 </script>
 <style scoped>
 @import '@/assets/css/home-page';

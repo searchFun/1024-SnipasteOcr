@@ -12,7 +12,6 @@ import config
 from dao.history_dao import insert_history
 from util import ocr_tools
 from util.date_tool import get_datetime
-from util.sqlite_tool import SqliteTemplate
 
 
 class WebEnginePage(QWebEnginePage):
@@ -27,9 +26,8 @@ class WebView(QWebEngineView):
     def __init__(self, handler, pageUrl):
         super(WebView, self).__init__()
         # 设置为无边框窗口
-        # self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowTitle('SnipasteOcr')
-        self.setWindowFlags(Qt.WindowCloseButtonHint)
         self.setWindowIcon(QIcon('D:\\LocalProject\\assets\\img\\icon.png'))
         # 调整大小
         self.resize(700, 800)
@@ -81,7 +79,7 @@ class OcrWidget(QWidget):
     # 正在截图标识
     doingFlag = False
 
-    ocr_lock = threading.Condition()
+    hasResult = False
 
     def __init__(self, parent=None, ):
         super(OcrWidget, self).__init__(parent)
@@ -96,7 +94,7 @@ class OcrWidget(QWidget):
             self.start()
 
     def start(self):
-        print("加锁")
+        self.hasResult = False
         # 对鼠标移动事件进行监听
         self.setMouseTracking(True)
         # 标识开始截图
@@ -151,14 +149,17 @@ class OcrWidget(QWidget):
 
             # 开始截图标记置否
             self.startFlag = False
+            # 获取当前图片
             pix = self.get_current_pix()
+            # 保存图片
             file_name = self.save_temp(pix)
-            print(file_name)
-            print("mid")
-            t1 = OcrThread(file_name)
-            t1.start()
-            self.hide()
-            self.setMouseTracking(False)
+            # 启动子线程识别结果
+            ocr_str = ocr_tools.img_to_str(file_name)
+            # 插入数据库
+            insert_history(ocr_str, file_name)
+            self.hasResult = True
+        self.hide()
+        self.setMouseTracking(False)
 
     # 获取当前pix
     def get_current_pix(self):
@@ -178,12 +179,3 @@ class OcrWidget(QWidget):
     # 删除这个缓存图片
     def delete_temp(self):
         os.remove(self.tmp_file_name)
-
-    # ocr
-    def ocr(self, pix):
-        file_name = self.save_temp(pix)
-        ocr_str = ocr_tools.img_to_str(file_name)
-        # 插入数据库
-        insert_history(ocr_str, file_name)
-
-        return ocr_str

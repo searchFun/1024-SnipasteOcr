@@ -1,18 +1,18 @@
-import Vue from "vue";
-import Router from "vue-router";
+import Vue from 'vue'
+import Router from 'vue-router'
 
-Vue.use(Router);
+Vue.use(Router)
 
 export default new Router({
   routes: [
     {
-      path: "/",
-      name: "home-page",
-      component: require("@/view/HomePage").default
+      path: '/',
+      name: 'home-page',
+      component: require('@/view/HomePage').default
     },
     {
-      path: "*",
-      redirect: "/"
+      path: '*',
+      redirect: '/'
     }
   ]
-});
+})

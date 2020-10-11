@@ -36,7 +36,7 @@ def create_table():
 
 def select_all():
     # 查询语句
-    sql = "select * from history;"
+    sql = "select * from history order by createtime desc;"
     sqlite = get_sqlite()
     result = sqlite.select(sql)
     sqlite.close()

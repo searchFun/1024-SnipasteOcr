@@ -47,6 +47,7 @@
     min-width: 220px;
     max-width: 220px;
     height: 100%;
+    overflow: scroll;
 }
 
 .body .aside .histories {
@@ -139,6 +140,13 @@
     position: absolute;
     top: 0;
     right: 10px;
+}
+
+.body .main .resultBody .result .copy:hover {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    color: red;
 }
 
 .body .main .resultBody .ocrResult {

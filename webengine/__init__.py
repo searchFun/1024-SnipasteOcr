@@ -15,14 +15,6 @@ app = None
 webview = None
 ocrView = None
 
-ocr_result = False
-
-
-def ocr_over(result):
-    print("ocr result:%s" % result)
-    ocr_result = True
-    # print(threading.current_thread().getName())
-
 
 class Handler(QObject):
 
@@ -30,14 +22,17 @@ class Handler(QObject):
     def demo(self, content):
         return content
 
+    # 最小化
     @Slot()
     def mini(self):
         webview.showMinimized()
 
+    # 退出
     @Slot()
     def quit(self):
         sys.exit()
 
+    # 复制结果
     @Slot(str, result=str)
     def copyResult(self, content):
         clipboard = QApplication.clipboard()
@@ -47,21 +42,27 @@ class Handler(QObject):
             "code": 200
         }, ensure_ascii=False)
 
-    @Slot()
-    def ocr(self):
+    # ocr
+    @Slot(str, result=str)
+    def ocr(self, req):
         webview.hide()
         ocrView.start()
         webview.show()
-        print("fff")
         return json.dumps({
             "code": 200
         }, ensure_ascii=False)
 
+    @Slot(str, result=bool)
+    def ocr_result(self, req):
+        return ocrView.hasResult
+
+    # 获取所有历史记录
     @Slot(str, result=str)
     def get_all_history(self, request):
         result = select_all()
         return json.dumps(result, ensure_ascii=False)
 
+    # 移除一个记录
     @Slot(int, result=str)
     def removeOne(self, id):
         remove_history(id)
@@ -76,7 +77,7 @@ if __name__ == '__main__':
         app = QApplication([])
     if webview is None:
         handler = Handler()
-        webview = WebView(handler=handler, pageUrl=f"{data_dir}/screenshotUi/index.html")
+        webview = WebView(handler=handler, pageUrl=f"{data_dir}/screenshotUi/dist/index.html")
         webview.show()
     if ocrView is None:
         ocrView = OcrWidget()

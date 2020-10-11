@@ -10,8 +10,8 @@
 
 <script>
 export default {
-  name: "electron-vue"
-};
+  name: 'electron-vue'
+}
 </script>
 
 <style>

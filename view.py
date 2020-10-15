@@ -3,15 +3,16 @@ import threading
 import time
 
 from PySide2.QtCore import Qt, QUrl, QFile, QIODevice
-from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QIcon
+from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QIcon, QColor
 from PySide2.QtWebChannel import QWebChannel
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PySide2.QtWidgets import QApplication, QWidget
 
 import config
 from dao.history_dao import insert_history
-from util import ocr_tools
+from util import img_utils
 from util.date_tool import get_datetime
+from util.img_utils import save_temp
 
 
 class WebEnginePage(QWebEnginePage):
@@ -26,9 +27,10 @@ class WebView(QWebEngineView):
     def __init__(self, handler, pageUrl):
         super(WebView, self).__init__()
         # 设置为无边框窗口
-        self.setWindowFlags(Qt.FramelessWindowHint)
+        # self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowTitleHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
         self.setWindowTitle('SnipasteOcr')
-        self.setWindowIcon(QIcon('D:\\LocalProject\\assets\\img\\icon.png'))
+        self.setWindowIcon(QIcon(f"{config.data_dir}/assets/img/icon.png"))
         # 调整大小
         self.resize(700, 800)
 
@@ -46,17 +48,6 @@ class WebView(QWebEngineView):
         # url = QUrl.fromLocalFile(f"{data_dir}/screenshotUi/index.html")
         url = QUrl.fromLocalFile(pageUrl)
         self.load(url)
-
-
-class OcrThread(threading.Thread):
-    def __init__(self, file_name):
-        super(OcrThread, self).__init__()
-        self.file_name = file_name
-
-    def run(self):
-        ocr_str = ocr_tools.img_to_str(self.file_name)
-        # 插入数据库
-        insert_history(ocr_str, self.file_name)
 
 
 class OcrWidget(QWidget):
@@ -81,12 +72,13 @@ class OcrWidget(QWidget):
 
     hasResult = False
 
-    def __init__(self, parent=None, ):
+    def __init__(self, ocr_over_callback, parent=None, ):
         super(OcrWidget, self).__init__(parent)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.palette = QPalette()
         self.desk = QApplication.desktop()
         self.screen = self.desk.screenGeometry()
+        self.ocr_over_callback = ocr_over_callback
 
     # 按键监听
     def keyPressEvent(self, evt):
@@ -105,11 +97,24 @@ class OcrWidget(QWidget):
         self.setGeometry(0, 0, self.screen.width(), self.screen.height())
         # 截全屏
         self.desktop_pix = QPixmap(QGuiApplication.primaryScreen().grabWindow(0))
+        self.blurry_pix = self.add_blurry(self.desktop_pix)
+
         # 设置画笔
-        self.palette.setBrush(self.backgroundRole(), QBrush(self.desktop_pix))
+        self.palette.setBrush(self.backgroundRole(), QBrush(self.blurry_pix))
         self.setPalette(self.palette)
         # 显示
         self.show()
+
+    def add_blurry(self, pix):
+        temp = QPixmap(pix.size())
+        temp.fill(Qt.transparent)
+        p1 = QPainter(temp)
+        p1.setCompositionMode(QPainter.CompositionMode_Source)
+        p1.drawPixmap(0, 0, pix)
+        p1.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+        p1.fillRect(temp.rect(), QColor(100, 100, 100, 100))
+        p1.end()
+        return temp
 
     # 画框
     def paintEvent(self, e):
@@ -117,11 +122,23 @@ class OcrWidget(QWidget):
             paint = QPainter(self)
             paint.setPen(QPen(Qt.red, 2, Qt.SolidLine))
             # paint.begin(self)
+            # 画边框
             paint.drawRect(min(self.mouse_current_y, self.mouse_start_x),
                            min(self.mouse_current_x, self.mouse_start_y),
                            abs(self.mouse_start_x - self.mouse_current_y),
                            abs(self.mouse_start_y - self.mouse_current_x))
+            paint.drawPixmap(min(self.mouse_current_y, self.mouse_start_x),
+                             min(self.mouse_current_x, self.mouse_start_y),
+                             abs(self.mouse_start_x - self.mouse_current_y),
+                             abs(self.mouse_start_y - self.mouse_current_x),
+                             self.part_of_pix(min(self.mouse_current_y, self.mouse_start_x),
+                                              min(self.mouse_current_x, self.mouse_start_y),
+                                              abs(self.mouse_start_x - self.mouse_current_y),
+                                              abs(self.mouse_start_y - self.mouse_current_x)))
             # paint.end()
+
+    def part_of_pix(self, s_x, s_y, width, height):
+        return self.desktop_pix.copy(s_x, s_y, width, height)
 
     # 鼠标按下事件
     def mousePressEvent(self, e):
@@ -149,33 +166,25 @@ class OcrWidget(QWidget):
 
             # 开始截图标记置否
             self.startFlag = False
-            # 获取当前图片
+            # 获取当前区域选择像素
             pix = self.get_current_pix()
             # 保存图片
-            file_name = self.save_temp(pix)
-            # 启动子线程识别结果
-            ocr_str = ocr_tools.img_to_str(file_name)
+            file_name = config.tmp_image_dir + "\\" + get_datetime() + ".png"
+            save_temp(pix, file_name)
+            # 识别结果
+            ocr_str = img_utils.img_ocr(file_name)
             # 插入数据库
             insert_history(ocr_str, file_name)
             self.hasResult = True
+            # # 识别完成的回调
+            self.ocr_over_callback(ocr_str)
+
         self.hide()
         self.setMouseTracking(False)
 
-    # 获取当前pix
+    # 获取当前选择区域pix
     def get_current_pix(self):
         return self.desktop_pix.copy(min(self.mouse_start_x, self.mouse_end_x),
                                      min(self.mouse_start_y, self.mouse_end_y),
                                      abs(self.mouse_end_x - self.mouse_start_x),
                                      abs(self.mouse_end_y - self.mouse_start_y))
-
-    # 存一个缓存图片
-    def save_temp(self, pix):
-        file_name = config.tmp_image_dir + "\\" + get_datetime() + ".png"
-        tmp_file = QFile(file_name)
-        tmp_file.open(QIODevice.WriteOnly)
-        pix.save(tmp_file, "PNG")
-        return file_name
-
-    # 删除这个缓存图片
-    def delete_temp(self):
-        os.remove(self.tmp_file_name)

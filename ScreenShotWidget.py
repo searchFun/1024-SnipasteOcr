@@ -2,14 +2,14 @@ import time
 
 from PySide2.QtCore import Qt, QUrl, QFile, QIODevice
 from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QColor
-from PySide2.QtWidgets import QApplication, QWidget
+from PySide2.QtWidgets import QApplication, QWidget, QButtonGroup, QPushButton, QHBoxLayout
 
 import config
 from dao.history_dao import insert_history
 from datetime_tool import get_now_time
 from ocr_tool import img_ocr
 from path_tool import combine_path
-from util.img_tool import pix2png, pix_add_blurry
+from util.img_tool import pix2png, pix_add_blurry, draw_circle
 
 
 class OcrWidget(QWidget):
@@ -31,6 +31,8 @@ class OcrWidget(QWidget):
     startFlag = False
     # 正在截图标识
     doingFlag = False
+    # 截图结束标识
+    endFlag = False
 
     hasResult = False
 
@@ -40,6 +42,7 @@ class OcrWidget(QWidget):
         self.palette = QPalette()
         self.desk = QApplication.desktop()
         self.screen = self.desk.screenGeometry()
+        self.set_toolbox()
         self.ocr_over_callback = ocr_over_callback
 
     # 按键监听
@@ -52,7 +55,8 @@ class OcrWidget(QWidget):
         # 对鼠标移动事件进行监听
         self.setMouseTracking(True)
         # 标识开始截图
-        self.startFlag = 1
+        self.startFlag = True
+        self.endFlag = False
         # 休眠0.3秒
         time.sleep(0.3)
         # 调整窗口大小 用于展示当前页面图
@@ -69,69 +73,79 @@ class OcrWidget(QWidget):
 
     # 画框
     def paintEvent(self, e):
-        if self.startFlag & self.doingFlag:
-            paint = QPainter(self)
-            paint.setPen(QPen(Qt.red, 2, Qt.SolidLine))
-            # paint.begin(self)
-            # 画边框
-            paint.drawRect(min(self.mouse_current_y, self.mouse_start_x),
-                           min(self.mouse_current_x, self.mouse_start_y),
-                           abs(self.mouse_start_x - self.mouse_current_y),
-                           abs(self.mouse_start_y - self.mouse_current_x))
-            paint.drawPixmap(min(self.mouse_current_y, self.mouse_start_x),
-                             min(self.mouse_current_x, self.mouse_start_y),
-                             abs(self.mouse_start_x - self.mouse_current_y),
-                             abs(self.mouse_start_y - self.mouse_current_x),
-                             self.part_of_pix(min(self.mouse_current_y, self.mouse_start_x),
-                                              min(self.mouse_current_x, self.mouse_start_y),
-                                              abs(self.mouse_start_x - self.mouse_current_y),
-                                              abs(self.mouse_start_y - self.mouse_current_x)))
-            # paint.end()
+        if self.startFlag:
+            self.draw_rect_image(self.mouse_start_x, self.mouse_start_y,
+                                 self.mouse_current_x, self.mouse_current_y)
+        if self.endFlag:
+            self.draw_rect_image(self.mouse_start_x, self.mouse_start_y,
+                                 self.mouse_end_x, self.mouse_end_y)
+
+    def draw_rect_image(self, start_x, start_y, end_x, end_y):
+        paint = QPainter(self)
+        paint.setPen(QPen(Qt.red, 3, Qt.SolidLine))
+        # paint.begin(self)
+        # 画边框
+        paint.drawRect(min(end_x, start_x),
+                       min(end_y, start_y),
+                       abs(start_x - end_x),
+                       abs(start_y - end_y))
+        # 画图像
+        paint.drawPixmap(min(end_x, start_x),
+                         min(end_y, start_y),
+                         abs(start_x - end_x),
+                         abs(start_y - end_y), self.part_of_pix(min(end_x, start_x),
+                                                                min(end_y, start_y),
+                                                                abs(start_x - end_x),
+                                                                abs(start_y - end_y)))
+        # paint.end()
+        draw_circle(5, start_x, start_y, QColor(Qt.white), QColor(Qt.red), self)
+        draw_circle(5, start_x, end_y, QColor(Qt.white), QColor(Qt.red), self)
+        draw_circle(5, end_x, start_y, QColor(Qt.white), QColor(Qt.red), self)
+        draw_circle(5, end_x, end_y, QColor(Qt.white), QColor(Qt.red), self)
 
     def part_of_pix(self, s_x, s_y, width, height):
         return self.desktop_pix.copy(s_x, s_y, width, height)
 
     # 鼠标按下事件
     def mousePressEvent(self, e):
-        if self.startFlag:
-            self.mouse_start_x = e.globalX()
-            self.mouse_start_y = e.globalY()
-            self.doingFlag = True
-        else:
-            print("未开始截图")
+        self.mouse_start_x = e.globalX()
+        self.mouse_start_y = e.globalY()
+        print("start:(%d,%d)" % (self.mouse_start_x, self.mouse_start_y))
+        self.startFlag = True
+        self.doingFlag = True
+        self.endFlag = False
 
     # 鼠标移动事件
     def mouseMoveEvent(self, e):
         if self.startFlag & self.doingFlag:
-            self.mouse_current_y = e.globalX()
-            self.mouse_current_x = e.globalY()
+            self.mouse_current_x = e.globalX()
+            self.mouse_current_y = e.globalY()
             self.update()
 
     # 鼠标松开
     def mouseReleaseEvent(self, e):
         # 如果已经标记了开始
         if self.startFlag:
+            # 开始截图标记置否
+            self.startFlag = False
             self.doingFlag = False
+            self.endFlag = True
             self.mouse_end_x = e.globalX()
             self.mouse_end_y = e.globalY()
 
-            # 开始截图标记置否
-            self.startFlag = False
-            # 获取当前区域选择像素
-            pix = self.get_current_pix()
-            # 保存图片
-            file_name = combine_path(config.tmp_image_dir, get_now_time() + ".png")
-            pix2png(pix, file_name)
-            # 识别结果
-            ocr_str = img_ocr(file_name)
-            # 插入数据库
-            insert_history(ocr_str, file_name)
-            self.hasResult = True
-            # # 识别完成的回调
-            self.ocr_over_callback(ocr_str)
+            self.show_toolbox(self.mouse_end_x - 200, self.mouse_end_y + 10)
 
-        self.hide()
-        self.setMouseTracking(False)
+            # # 获取当前区域选择像素
+            # pix = self.get_current_pix()
+            # # 保存图片
+            # file_name = combine_path(config.tmp_image_dir, get_now_time() + ".png")
+            # pix2png(pix, file_name)
+            # # 识别结果
+            # ocr_str = img_ocr(file_name)
+            # # 插入数据库
+            # insert_history(ocr_str, file_name)
+
+        # self.hide()
 
     # 获取当前选择区域pix
     def get_current_pix(self):
@@ -139,3 +153,30 @@ class OcrWidget(QWidget):
                                      min(self.mouse_start_y, self.mouse_end_y),
                                      abs(self.mouse_end_x - self.mouse_start_x),
                                      abs(self.mouse_end_y - self.mouse_start_y))
+
+    def btn_ok_fun(self):
+        ocr_str = '1'
+        self.endFlag = False
+        self.hasResult = True
+        # # 识别完成的回调
+        self.ocr_over_callback(ocr_str)
+        self.setMouseTracking(False)
+        self.tool_box.hide()
+        self.hide()
+
+    def set_toolbox(self):
+        self.tool_box = QWidget()
+        self.tool_box.setWindowFlags(Qt.FramelessWindowHint)
+        hor_layout = QHBoxLayout()
+        self.ok_btn = QPushButton("完成")
+        self.ok_btn.clicked.connect(self.btn_ok_fun)
+        hor_layout.addWidget(self.ok_btn)
+        self.tool_box.setLayout(hor_layout)
+        self.tool_box.hide()
+
+    def show_toolbox(self, x, y):
+        self.tool_box.move(x, y)
+        self.tool_box.show()
+
+    def hide_toolbox(self):
+        self.tool_box.hide()

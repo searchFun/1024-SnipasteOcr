@@ -1,6 +1,6 @@
 import config
-from util.date_tool import get_datetime
-from util.sqlite_tool import SqliteTemplate
+from datetime_tool import get_now_time
+from util.common.sqlite_tool import SqliteTemplate
 
 
 def get_sqlite():
@@ -36,7 +36,7 @@ def insert_history(content: str, img_url: str):
     sql = "insert into history values(NULL, ?, ?,?);"
     print(sql)
     sqlite = get_sqlite()
-    sqlite.insert(sql, [content, str(get_datetime()), img_url])
+    sqlite.insert(sql, [content, str(get_now_time()), img_url])
     sqlite.close()
 
 

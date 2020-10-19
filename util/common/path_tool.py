@@ -1,5 +1,6 @@
 import os
 
+
 def get_current_path():
     return os.path.abspath(".")
 
@@ -17,9 +18,11 @@ def combine_path(base_path, *paths):
     paths_len = len(paths)
     index = 1
     for path in paths:
+        # 如果路径参数不是最后一个，判断是否是目录
         if index < paths_len:
-            if is_dir(path) is False:
+            if is_dir(os.path.join(tmp_path, path)) is False:
                 raise ValueError("%s不是一个目录" % path)
+            index += 1
         tmp_path = os.path.join(tmp_path, path)
 
     return tmp_path

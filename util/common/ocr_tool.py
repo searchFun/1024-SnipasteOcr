@@ -14,7 +14,7 @@ def get_file_content(file):
         return fp.read()
 
 
-def img_ocr1(image_path):
+def img_ocr(image_path):
     import pytesseract
     from PIL import Image
 
@@ -23,7 +23,7 @@ def img_ocr1(image_path):
     return pytesseract.image_to_string(image, lang='chi_sim')
 
 
-def img_ocr(image_path):
+def img_ocr1(image_path):
     image = get_file_content(image_path)
     result = client.basicGeneral(image)
     if 'words_result' in result:

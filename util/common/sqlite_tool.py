@@ -1,7 +1,6 @@
 import sqlite3
-from functools import wraps
 
-from descriptions import bool_exception, run_time
+from descriptions import bool_exception
 
 
 class SqliteTemplate:
@@ -39,7 +38,6 @@ class SqliteTemplate:
     def select(self, sql: str, parameters=[]):
         result = []
 
-        @run_time
         @bool_exception
         def select():
             cursor = self._cursor.execute(sql, parameters)
@@ -61,18 +59,3 @@ class SqliteTemplate:
     def delete(self, sql_statement, parameters=[]):
         self._cursor.execute(sql_statement, parameters)
         self._conn.commit()
-
-
-jdbc = SqliteTemplate("test2.db")
-jdbc.create_table('''create table test(
-    id integer primary key autoincrement,
-    name varchar(10) null,
-    age integer null
-);''')
-jdbc.insert("insert into test values(NULL,?,?)", ['hjc', '12'])
-jdbc.insert_many("insert into test values(NULL,?,?)", [['hjc', '12'], ['lcm', '18'], ['lsz', '13']])
-result = jdbc.select("select * from test")
-for item in result:
-    print(item)
-
-jdbc.close()

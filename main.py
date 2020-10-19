@@ -1,13 +1,15 @@
 import json
 import os
 
+from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QApplication
 from PySide2.QtCore import QObject, Slot
 import sys
 
 import config
+from core.WebEngine import WebView
 from dao.history_dao import select_all, remove_history, get_item_imgurl
-from view import WebView, OcrWidget
+from ScreenShotWidget import OcrWidget
 
 app = None
 webview = None
@@ -79,8 +81,10 @@ if __name__ == '__main__':
         app = QApplication([])
     if webview is None:
         handler = Handler()
-        pageUrl = f"{config.data_dir}/assets/index.html"
-        webview = WebView(handler=handler, pageUrl=pageUrl)
+        webview = WebView(handler=handler,
+                          load_url=config.index_file,
+                          window_title=config.app_name,
+                          window_icon=QIcon(config.icon_img_path))
         webview.show()
     if ocrView is None:
         ocrView = OcrWidget(ocr_over_callback=ocr_over_callback)

@@ -1,4 +1,3 @@
-from PySide2.QtCore import QFile, QIODevice
 from aip import AipOcr
 
 config = {
@@ -22,7 +21,6 @@ def img_ocr1(image_path):
     # open image
     image = Image.open(image_path)
     return pytesseract.image_to_string(image, lang='chi_sim')
-    # return pytesseract.image_to_string(image)
 
 
 def img_ocr(image_path):
@@ -30,10 +28,3 @@ def img_ocr(image_path):
     result = client.basicGeneral(image)
     if 'words_result' in result:
         return '\n'.join([w['words'] for w in result['words_result']])
-
-
-# 存一个缓存图片
-def save_temp(pix, file_name):
-    tmp_file = QFile(file_name)
-    tmp_file.open(QIODevice.WriteOnly)
-    pix.save(tmp_file, "PNG")

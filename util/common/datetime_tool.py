@@ -18,21 +18,21 @@ def get_now_before_time(days=0):
 
 # 获取天数转文字字符串
 def get_days_str(days: int):
-    if days is 1:
+    if days == 1:
         return '单'
-    elif days is 2:
+    elif days == 2:
         return '两'
-    elif days is 3:
+    elif days == 3:
         return '三'
-    elif days is 4:
+    elif days == 4:
         return '四'
-    elif days is 5:
+    elif days == 5:
         return '五'
-    elif days is 6:
+    elif days == 6:
         return '六'
-    elif days is 7:
+    elif days == 7:
         return '七'
-    elif days is 8:
+    elif days == 8:
         return '八'
     else:
         raise ValueError("日期太长喽")
@@ -40,7 +40,7 @@ def get_days_str(days: int):
 
 # 获取最近天数字符串
 def get_recent_date_str(days=1, combine_str=None, formatter=default_format):
-    if days is 1:
+    if days == 1:
         return format_time(get_now_before_time(1), formatter)
     else:
         return "%s%s%s" % (format_time(get_now_before_time(days), formatter),

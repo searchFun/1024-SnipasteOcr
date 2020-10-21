@@ -1,15 +1,12 @@
 import time
 
-from PySide2.QtCore import Qt, QUrl, QFile, QIODevice
-from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QColor
-from PySide2.QtWidgets import QApplication, QWidget, QButtonGroup, QPushButton, QHBoxLayout
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QColor, QIcon
+from PySide2.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout
 
 import config
-from dao.history_dao import insert_history
-from datetime_tool import get_now_time
-from ocr_tool import img_ocr
 from path_tool import combine_path
-from util.img_tool import pix2png, pix_add_blurry, draw_circle
+from util.img_tool import pix_add_blurry, draw_circle
 
 
 class OcrWidget(QWidget):
@@ -133,7 +130,7 @@ class OcrWidget(QWidget):
             self.mouse_end_x = e.globalX()
             self.mouse_end_y = e.globalY()
 
-            self.show_toolbox(self.mouse_end_x - 200, self.mouse_end_y + 10)
+            self.show_toolbox(self.mouse_end_x - 180, self.mouse_end_y + 10)
 
             # # 获取当前区域选择像素
             # pix = self.get_current_pix()
@@ -154,7 +151,7 @@ class OcrWidget(QWidget):
                                      abs(self.mouse_end_x - self.mouse_start_x),
                                      abs(self.mouse_end_y - self.mouse_start_y))
 
-    def btn_ok_fun(self):
+    def ok_btn_fun(self):
         ocr_str = '1'
         self.endFlag = False
         self.hasResult = True
@@ -164,14 +161,45 @@ class OcrWidget(QWidget):
         self.tool_box.hide()
         self.hide()
 
+    def cancel_btn_fun(self):
+        self.endFlag = False
+        self.hasResult = False
+        self.tool_box.hide()
+        self.hide()
+
     def set_toolbox(self):
         self.tool_box = QWidget()
         self.tool_box.setWindowFlags(Qt.FramelessWindowHint)
-        hor_layout = QHBoxLayout()
-        self.ok_btn = QPushButton("完成")
-        self.ok_btn.clicked.connect(self.btn_ok_fun)
-        hor_layout.addWidget(self.ok_btn)
-        self.tool_box.setLayout(hor_layout)
+        layout = QHBoxLayout()
+        layout.setMargin(0)
+        layout.setSpacing(0)
+        # ok按钮
+        self.ok_btn = QPushButton()
+        self.ok_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "ok.png")))
+        self.ok_btn.clicked.connect(self.ok_btn_fun)
+        layout.addWidget(self.ok_btn)
+
+        # 复制图像
+        self.copy_btn = QPushButton()
+        self.copy_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "copy.png")))
+        layout.addWidget(self.copy_btn)
+
+        # # 固定
+        # self.guding_btn = QPushButton()
+        # self.guding_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "guding.png")))
+        # layout.addWidget(self.guding_btn)
+
+        # 固定
+        self.save = QPushButton()
+        self.save.setIcon(QIcon(combine_path(config.resource_dir, "img", "save.png")))
+        layout.addWidget(self.save)
+
+        # 取消
+        self.close_btn = QPushButton()
+        self.close_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "close.png")))
+        self.close_btn.clicked.connect(self.cancel_btn_fun)
+        layout.addWidget(self.close_btn)
+        self.tool_box.setLayout(layout)
         self.tool_box.hide()
 
     def show_toolbox(self, x, y):

@@ -22,11 +22,11 @@ class ToolBoxWidget(QWidget):
         toolbox.setMargin(1)
         toolbox.setSpacing(1)
         ok_btn = QPushButton()
-        ok_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "ok.png")))
+        ok_btn.setIcon(QIcon(combine_path(config.page_dir, "img", "ok.png")))
         toolbox.addWidget(ok_btn)
 
         copy_btn = QPushButton()
-        copy_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "copy.png")))
+        copy_btn.setIcon(QIcon(combine_path(config.page_dir, "img", "copy.png")))
         toolbox.addWidget(copy_btn)
 
         # guding_btn = QPushButton()
@@ -34,11 +34,11 @@ class ToolBoxWidget(QWidget):
         # toolbox.addWidget(guding_btn)
 
         save = QPushButton()
-        save.setIcon(QIcon(combine_path(config.resource_dir, "img", "save.png")))
+        save.setIcon(QIcon(combine_path(config.page_dir, "img", "save.png")))
         toolbox.addWidget(save)
 
         close_btn = QPushButton()
-        close_btn.setIcon(QIcon(combine_path(config.resource_dir, "img", "close.png")))
+        close_btn.setIcon(QIcon(combine_path(config.page_dir, "img", "close.png")))
         toolbox.addWidget(close_btn)
         self.setLayout(toolbox)
 

@@ -1,7 +1,5 @@
 import sqlite3
 
-from descriptions import bool_exception
-
 
 class SqliteTemplate:
     def __init__(self, db_name):
@@ -15,22 +13,18 @@ class SqliteTemplate:
         self._cursor.close()
         self._conn.close()
 
-    @bool_exception
     def create_table(self, sql, parameters=[]):
         self._cursor.execute(sql, parameters)
         self._conn.commit()
 
-    @bool_exception
     def drop_table(self, sql):
         self._cursor.execute(sql)
         self._conn.commit()
 
-    @bool_exception
     def insert(self, sql_statement, parameters=[]):
         self._cursor.execute(sql_statement, parameters)
         self._conn.commit()
 
-    @bool_exception
     def insert_many(self, sql_statement, parameters: list):
         self._cursor.executemany(sql_statement, parameters)
         self._conn.commit()
@@ -38,7 +32,6 @@ class SqliteTemplate:
     def select(self, sql: str, parameters=[]):
         result = []
 
-        @bool_exception
         def select():
             cursor = self._cursor.execute(sql, parameters)
             for row in cursor:
@@ -50,12 +43,10 @@ class SqliteTemplate:
         select()
         return result
 
-    @bool_exception
     def update(self, sql_statement, parameters=[]):
         self._cursor.execute(sql_statement, parameters)
         self._conn.commit()
 
-    @bool_exception
     def delete(self, sql_statement, parameters=[]):
         self._cursor.execute(sql_statement, parameters)
         self._conn.commit()

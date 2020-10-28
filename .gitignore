@@ -1,3 +1,4 @@
 /ui/node_modules/*
 /screenshotUi/node_modules/*
+/venv/*
 .idea

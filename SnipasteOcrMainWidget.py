@@ -1,15 +1,14 @@
-import json
-import os
-import sys
 import time
 
-from PySide2.QtCore import QObject, Slot, QUrl
+from PySide2.QtCore import QUrl
 from PySide2.QtGui import Qt, QIcon, QPalette, QPixmap, QGuiApplication, QBrush
 from PySide2.QtWebChannel import QWebChannel
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PySide2.QtWidgets import QSystemTrayIcon, QMenu, QAction, QApplication, QWidget
 
+import JsHandler
 import config
+from ScreenShotWidget import ScreenShotWidget
 from datetime_tool import get_now_time
 import history_dao as his_dao
 from ocr_tool import img_ocr
@@ -28,64 +27,6 @@ app_widget = {
 web_channel_name = "backend"
 
 
-class Handler(QObject):
-    main_window = None
-
-    def __init__(self, main_window):
-        super().__init__()
-        self.main_window = main_window
-
-    # 最小化
-    @Slot()
-    def mini(self):
-        self.main_window.showMinimized()
-
-    # 退出
-    @Slot()
-    def quit(self):
-        QApplication.instance().quit()
-
-    # 复制结果
-    @Slot(str, result=str)
-    def copyResult(self, content):
-        clipboard = QApplication.clipboard()
-        clipboard.clear()
-        clipboard.setText(content)
-        return json.dumps({
-            "code": 200
-        }, ensure_ascii=False)
-
-    # ocr
-    @Slot(str, result=str)
-    def ocr(self, req):
-        self.main_window.screenShot()
-        return "ff"
-
-    @Slot(str, result=bool)
-    def ocr_result(self, req):
-        # return ocrView.hasResult
-        return "null"
-
-    # 获取所有历史记录
-    @Slot(str, result=str)
-    def get_all_history(self, request):
-        result = his_dao.select_all()
-        return json.dumps(result, ensure_ascii=False)
-
-    # 移除一个记录
-    @Slot(int, result=str)
-    def removeOne(self, id):
-        img_url = his_dao.get_item_imgurl(id)
-        his_dao.remove_history(id)
-        try:
-            os.remove(img_url)
-        except Exception as e:
-            print("没有:%s" % img_url)
-        return json.dumps({
-            "code": 200
-        }, ensure_ascii=False)
-
-
 class WebEnginePage(QWebEnginePage):
     def __init__(self, *args, **kwargs):
         super(WebEnginePage, self).__init__(*args, **kwargs)
@@ -94,6 +35,12 @@ class WebEnginePage(QWebEnginePage):
         print("WebEnginePage Console: [", message, lineNumber, sourceId, "]")
 
 
+# 退出程序
+def quitApp():
+    QApplication.instance().quit()
+
+
+# 系统托盘
 class SystemTrayIcon(QSystemTrayIcon):
 
     def __init__(self, main_widget):
@@ -103,10 +50,11 @@ class SystemTrayIcon(QSystemTrayIcon):
         self.setFun()
 
     def setUi(self):
+        # 托盘右键菜单
         self.menu_tray = QMenu()
         self.action_show = QAction("显示窗口", self, triggered=self.showWidget)
         self.action_screenshot = QAction("截屏", self, triggered=self.ui.screenShot)
-        self.action_quit = QAction("退出", self, triggered=self.quitApp)
+        self.action_quit = QAction("退出", self, triggered=quitApp)
 
         self.menu_tray.addAction(self.action_show)
         self.menu_tray.addAction(self.action_screenshot)
@@ -125,10 +73,7 @@ class SystemTrayIcon(QSystemTrayIcon):
         self.ui.showNormal()
         self.ui.activateWindow()
 
-    # 退出程序
-    def quitApp(self):
-        QApplication.instance().quit()
-
+    # 点击事件
     def onIconClicked(self, reason):
         # 1是表示单击右键，2是双击，3是单击左键，4是用鼠标中键点击
         if reason == 2 or reason == 3:
@@ -139,14 +84,20 @@ class SystemTrayIcon(QSystemTrayIcon):
                 self.ui.showMinimized()
 
 
-class SnipasteOcrWidget(QWebEngineView):
+# 主窗口
+class SnipasteOcrMainWidget(QWebEngineView):
     load_page = QUrl.fromLocalFile(config.index_file)
 
     sc_widget = None
 
+    system_tray = None
+
     def __init__(self):
-        super(SnipasteOcrWidget, self).__init__()
+        super(SnipasteOcrMainWidget, self).__init__()
+        # 设置子窗口
         self.sc_widget = ScreenShotWidget(self)
+        # 设置系统托盘
+        self.system_tray = SystemTrayIcon(self)
         # 设置Ui
         self.setUi()
         # 加载页面
@@ -159,25 +110,27 @@ class SnipasteOcrWidget(QWebEngineView):
         self.setWindowIcon(QIcon(app_icon))
         # 调整大小
         self.resize(app_widget["width"], app_widget["height"])
-        # 设置系统托盘
-        self.system_tray_icon = SystemTrayIcon(self)
+        self.system_tray.show()
 
     def loadPage(self):
         # channel是页面中可以拿到的,顾名思义,一个通道
         self.web_channel = QWebChannel()
-        self.web_channel.registerObject(web_channel_name, Handler(self))
+        self.web_channel.registerObject(web_channel_name, JsHandler.Handler(self))
 
         # Use a custom page that prints console messages to make debugging easier
         self.web_page = WebEnginePage()
         self.web_page.setWebChannel(self.web_channel)
         self.setPage(self.web_page)
+
+    def show(self):
+        super(SnipasteOcrMainWidget, self).show()
         # 加载页面
         self.load(self.load_page)
-        self.showManWidget()
+        self.sc_widget.hide()
 
     def screenShot(self):
         self.showScWidget()
-        self.sc_widget.screenshot()
+        # self.sc_widget.screenshot()
 
     def showScWidget(self):
         self.hide()
@@ -188,7 +141,7 @@ class SnipasteOcrWidget(QWebEngineView):
         self.show()
 
 
-class ScreenShotWidget(QWidget):
+class TScreenShotWidget(QWidget):
     desktop_pix = None
 
     # 鼠标点击开始点
@@ -282,12 +235,3 @@ class ScreenShotWidget(QWidget):
         self.setPalette(self.palette)
         # 显示
         self.show()
-
-
-if __name__ == '__main__':
-    app = QApplication().instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    widget = SnipasteOcrWidget()
-    widget.show()
-    app.exec_()

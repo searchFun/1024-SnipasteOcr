@@ -1,19 +1,16 @@
+import sys
 import time
 
-from PySide2 import QtWidgets, QtGui
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPen, QColor, QIcon
-from PySide2.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout
+from PySide2.QtCore import Qt, Signal
+from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPaintEvent
+from PySide2.QtWidgets import QApplication, QWidget
 
-import config
-from history_dao import insert_history
-from util.common.datetime_tool import get_now_time
-from util.common.ocr_tool import img_ocr
-from util.common.path_tool import combine_path
-from util.img_tool import pix_add_blurry, draw_circle, pix2png
+from util.img_tool import pix_add_blurry
 
 
-class OcrWidget(QWidget):
+class ScreenShotMainWidget(QWidget):
+    # 绘画信号
+    draw_signal = Signal(QPixmap)
     desktop_pix = None
 
     # 鼠标点击开始点
@@ -37,25 +34,24 @@ class OcrWidget(QWidget):
 
     hasResult = False
 
-    def __init__(self, ocr_over_callback, parent=None, ):
-        super(OcrWidget, self).__init__(parent)
+    show_widget = None
+
+    def __init__(self, parent=None, ):
+        super(ScreenShotMainWidget, self).__init__(parent)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.palette = QPalette()
         self.desk = QApplication.desktop()
         self.screen = self.desk.screenGeometry()
-        # self.set_toolbox()
-        self.ocr_over_callback = ocr_over_callback
+        self.show_widget = ScreenShotShowWidget(self)
+        self.draw_signal.connect(self.show_widget.loadPix)
+        self.screenshot()
 
     # 按键监听
     def keyPressEvent(self, evt):
         if evt.key() == Qt.Key_F2:
             self.screenshot()
-
-    # 画框
-    def paintEvent(self, e):
-        if self.startFlag & self.doingFlag:
-            self.draw_rect_image(self.mouse_start_x, self.mouse_start_y,
-                                 self.mouse_current_x, self.mouse_current_y)
+        if evt.key() == Qt.Key_Escape:
+            QApplication.instance().quit()
 
     # 鼠标按下事件
     def mousePressEvent(self, e):
@@ -64,13 +60,24 @@ class OcrWidget(QWidget):
         self.startFlag = True
         self.doingFlag = True
         self.endFlag = False
+        self.show_widget.show()
 
     # 鼠标移动事件
     def mouseMoveEvent(self, e):
         if self.startFlag & self.doingFlag:
             self.mouse_current_x = e.globalX()
             self.mouse_current_y = e.globalY()
-            self.update()
+            x = min(self.mouse_start_x, self.mouse_current_x)
+            y = min(self.mouse_start_y, self.mouse_current_y)
+            width = abs(self.mouse_current_x - self.mouse_start_x)
+            height = abs(self.mouse_current_y - self.mouse_start_y)
+            print("----------------------------------")
+            print("start_x:%d,start_y:%d" % (self.mouse_start_x, self.mouse_start_y))
+            print("current_x:%d,current_y:%d" % (self.mouse_current_x, self.mouse_current_y))
+            print("x:%d,y:%d,width:%d,height:%d" % (x, y, width, height))
+            self.show_widget.setGeometry(x, y, width, height)
+            self.draw_signal.emit(self.part_of_pix(x, y, width, height))
+            self.show_widget.update()
 
     # 鼠标松开
     def mouseReleaseEvent(self, e):
@@ -82,23 +89,14 @@ class OcrWidget(QWidget):
             self.mouse_end_x = e.globalX()
             self.mouse_end_y = e.globalY()
 
-            # self.show_toolbox(self.mouse_end_x - 180, self.mouse_end_y + 10)
-
             # 获取当前区域选择像素
             pix = self.get_current_pix()
-            # 保存图片
-            file_name = combine_path(config.tmp_image_dir, str(get_now_time("%Y%m%d%H%M%S")) + ".png")
-            pix2png(pix, file_name)
-            # 识别结果
-            ocr_str = img_ocr(file_name)
-            # 插入数据库
-            insert_history(ocr_str, file_name)
+
             self.endFlag = False
             self.hasResult = True
             # # 识别完成的回调
-            self.ocr_over_callback(ocr_str)
-            self.setMouseTracking(False)
-            self.hide()
+            # self.setMouseTracking(False)
+            # self.hide()
 
     def screenshot(self):
         self.hasResult = False
@@ -128,28 +126,41 @@ class OcrWidget(QWidget):
                                      abs(self.mouse_end_x - self.mouse_start_x),
                                      abs(self.mouse_end_y - self.mouse_start_y))
 
-    def draw_rect_image(self, start_x, start_y, end_x, end_y):
-        paint = QPainter(self)
-        paint.setPen(QPen(Qt.red, 3, Qt.SolidLine))
-        # paint.begin(self)
-        # 画边框
-        paint.drawRect(min(end_x, start_x),
-                       min(end_y, start_y),
-                       abs(start_x - end_x),
-                       abs(start_y - end_y))
-        # 画图像
-        paint.drawPixmap(min(end_x, start_x),
-                         min(end_y, start_y),
-                         abs(start_x - end_x),
-                         abs(start_y - end_y), self.part_of_pix(min(end_x, start_x),
-                                                                min(end_y, start_y),
-                                                                abs(start_x - end_x),
-                                                                abs(start_y - end_y)))
-        # paint.end()
-        draw_circle(5, start_x, start_y, QColor(Qt.white), QColor(Qt.red), self)
-        draw_circle(5, start_x, end_y, QColor(Qt.white), QColor(Qt.red), self)
-        draw_circle(5, end_x, start_y, QColor(Qt.white), QColor(Qt.red), self)
-        draw_circle(5, end_x, end_y, QColor(Qt.white), QColor(Qt.red), self)
-
     def part_of_pix(self, s_x, s_y, width, height):
         return self.desktop_pix.copy(s_x, s_y, width, height)
+
+
+class ScreenShotShowWidget(QWidget):
+    main_widget = None
+    pixmap = None
+
+    def __init__(self, main_widget):
+        super(ScreenShotShowWidget, self).__init__()
+        self.main_widget = main_widget
+        self.setUi()
+
+        # 按键监听
+
+    def keyPressEvent(self, evt):
+        if evt.key() == Qt.Key_F2:
+            self.screenshot()
+        if evt.key() == Qt.Key_Escape:
+            QApplication.instance().quit()
+
+    def setUi(self):
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        print("hello")
+
+    def paintEvent(self, event: QPaintEvent):
+        painter = QPainter(self)
+        painter.drawPixmap(self.rect(), self.pixmap)
+
+    def loadPix(self, pixmap: QPixmap):
+        self.pixmap = pixmap
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    widget = ScreenShotMainWidget()
+    widget.show()
+    sys.exit(app.exec_())

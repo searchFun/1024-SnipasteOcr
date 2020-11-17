@@ -6,12 +6,10 @@ app_name = "SnipasteOCR"
 tmp_image_dir = "C:\\ProgramData\\SnipasteOcr"
 # 当前目录
 project_dir = get_current_path()
-
 # 页面文件目录
-page_dir = combine_path(project_dir, "assets", "page")
+page_dir = combine_path(project_dir, "screenshotUi", "dist")
 # 首页文件
 index_file = combine_path(page_dir, "index.html")
-
 # 其他资源目录
 resources_dir = combine_path(project_dir, "assets", "other")
 # 数据库文件

@@ -35,12 +35,10 @@ class PainterWidget(QWidget):
 
 def draw_circle(radius, x, y, border_color, fill_color, widget):
     painter = QPainter(widget)
-    painter.begin(widget)
     painter.setRenderHint(QPainter.Antialiasing, True)
     painter.setPen(QPen(border_color, 1.5, Qt.SolidLine))
     painter.setBrush(QBrush(fill_color))
     painter.drawEllipse(x-radius, y-radius, radius * 2, radius * 2)
-    painter.end()
 
 
 if __name__ == '__main__':

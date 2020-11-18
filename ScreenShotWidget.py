@@ -1,16 +1,18 @@
 import sys
 import time
 
-from PySide2.QtCore import Qt, Signal
-from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPaintEvent
+import PySide2
+from PySide2.QtCore import Qt, Signal, QRect, QPoint
+from PySide2.QtGui import QPalette, QGuiApplication, QPixmap, QBrush, QPainter, QPaintEvent, QCursor, QMouseEvent, QPen, \
+    QColor
 from PySide2.QtWidgets import QApplication, QWidget
 
-from util.img_tool import pix_add_blurry
+from util.img_tool import pix_add_blurry, draw_circle
 
 
 class ScreenShotMainWidget(QWidget):
     # 绘画信号
-    draw_signal = Signal(QPixmap)
+    draw_signal = Signal(QPoint, QPoint)
     desktop_pix = None
 
     # 鼠标点击开始点
@@ -43,7 +45,7 @@ class ScreenShotMainWidget(QWidget):
         self.desk = QApplication.desktop()
         self.screen = self.desk.screenGeometry()
         self.show_widget = ScreenShotShowWidget(self)
-        self.draw_signal.connect(self.show_widget.loadPix)
+        self.draw_signal.connect(self.show_widget.adjustGeometry)
         self.screenshot()
 
     # 按键监听
@@ -60,24 +62,19 @@ class ScreenShotMainWidget(QWidget):
         self.startFlag = True
         self.doingFlag = True
         self.endFlag = False
-        self.show_widget.show()
+        # self.show_widget.show()
 
     # 鼠标移动事件
-    def mouseMoveEvent(self, e):
+    def mouseMoveEvent(self, event: PySide2.QtGui.QMouseEvent):
         if self.startFlag & self.doingFlag:
-            self.mouse_current_x = e.globalX()
-            self.mouse_current_y = e.globalY()
-            x = min(self.mouse_start_x, self.mouse_current_x)
-            y = min(self.mouse_start_y, self.mouse_current_y)
-            width = abs(self.mouse_current_x - self.mouse_start_x)
-            height = abs(self.mouse_current_y - self.mouse_start_y)
-            print("----------------------------------")
-            print("start_x:%d,start_y:%d" % (self.mouse_start_x, self.mouse_start_y))
-            print("current_x:%d,current_y:%d" % (self.mouse_current_x, self.mouse_current_y))
-            print("x:%d,y:%d,width:%d,height:%d" % (x, y, width, height))
-            self.show_widget.setGeometry(x, y, width, height)
-            self.draw_signal.emit(self.part_of_pix(x, y, width, height))
-            self.show_widget.update()
+            self.show_widget.show()
+            self.mouse_current_x = event.globalX()
+            self.mouse_current_y = event.globalY()
+            pointTopLeft = QPoint(min(self.mouse_start_x, self.mouse_current_x),
+                                  min(self.mouse_start_y, self.mouse_current_y))
+            pointBottomRight = QPoint(max(self.mouse_start_x, self.mouse_current_x),
+                                      max(self.mouse_start_y, self.mouse_current_y))
+            self.draw_signal.emit(pointTopLeft, pointBottomRight)
 
     # 鼠标松开
     def mouseReleaseEvent(self, e):
@@ -90,8 +87,6 @@ class ScreenShotMainWidget(QWidget):
             self.mouse_end_y = e.globalY()
 
             # 获取当前区域选择像素
-            pix = self.get_current_pix()
-
             self.endFlag = False
             self.hasResult = True
             # # 识别完成的回调
@@ -119,26 +114,14 @@ class ScreenShotMainWidget(QWidget):
         # 显示
         self.show()
 
-    # 获取当前选择区域pix
-    def get_current_pix(self):
-        return self.desktop_pix.copy(min(self.mouse_start_x, self.mouse_end_x),
-                                     min(self.mouse_start_y, self.mouse_end_y),
-                                     abs(self.mouse_end_x - self.mouse_start_x),
-                                     abs(self.mouse_end_y - self.mouse_start_y))
-
-    def part_of_pix(self, s_x, s_y, width, height):
-        return self.desktop_pix.copy(s_x, s_y, width, height)
-
 
 class ScreenShotShowWidget(QWidget):
     main_widget = None
-    pixmap = None
 
     def __init__(self, main_widget):
         super(ScreenShotShowWidget, self).__init__()
         self.main_widget = main_widget
         self.setUi()
-
         # 按键监听
 
     def keyPressEvent(self, evt):
@@ -153,10 +136,41 @@ class ScreenShotShowWidget(QWidget):
 
     def paintEvent(self, event: QPaintEvent):
         painter = QPainter(self)
-        painter.drawPixmap(self.rect(), self.pixmap)
+        painter.drawPixmap(self.rect(), self.draw_desktop_pix(self.geometry()))
+        self.draw_rect_image(self.geometry())
 
-    def loadPix(self, pixmap: QPixmap):
-        self.pixmap = pixmap
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.LeftButton:
+            self.dragPosition = event.globalPos() - self.frameGeometry().topLeft()
+            self.cursor = QCursor()
+            self.cursor.setShape(Qt.SizeAllCursor)
+            self.setCursor(self.cursor)
+
+    def adjustGeometry(self, leftTop: QPoint, rightBottom: QPoint):
+        self.setGeometry(QRect(leftTop, rightBottom))
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        self.move(event.globalPos() - self.dragPosition)
+        self.update()
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.LeftButton:
+            self.move(event.globalPos() - self.dragPosition)
+            self.cursor.setShape(Qt.ArrowCursor)
+            self.setCursor(self.cursor)
+
+    def draw_desktop_pix(self, rect: QRect):
+        return self.main_widget.desktop_pix.copy(rect)
+
+    def draw_rect_image(self, rect: QRect):
+        paint = QPainter(self)
+        paint.setPen(QPen(Qt.red, 3, Qt.SolidLine))
+        # 画边框
+        paint.drawRect(rect)
+        draw_circle(5, rect.top(), rect.left(), QColor(Qt.white), QColor(Qt.red), self)
+        draw_circle(5, rect.top(), rect.right(), QColor(Qt.white), QColor(Qt.red), self)
+        draw_circle(5, rect.bottom(), rect.left(), QColor(Qt.white), QColor(Qt.red), self)
+        draw_circle(5, rect.bottom(), rect.right(), QColor(Qt.white), QColor(Qt.red), self)
 
 
 if __name__ == '__main__':
